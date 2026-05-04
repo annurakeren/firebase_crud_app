@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "387463215998",
+    "project_id": "mobprogfbasecrud",
+    "storage_bucket": "mobprogfbasecrud.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:387463215998:android:f9f4d1619b1ff0c260912f",
+        "android_client_info": {
+          "package_name": "com.example.untitled"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqKthFd0znVEiOIDNf0DFwPDD-mFsTimM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
