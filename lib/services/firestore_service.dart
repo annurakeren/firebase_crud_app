@@ -4,23 +4,26 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../models/mahasiswa_model.dart';
 
 class FirestoreService {
-  final _col = FirebaseFirestore.instance.collection('mahasiswa');
-  final _storage = FirebaseStorage.instance;
+  final _collection =
+  FirebaseFirestore.instance.collection('mahasiswa');
 
-  Stream<List<Mahasiswa>> getMahasiswaStream() {
-    return _col.orderBy('nama').snapshots().map((snap) =>
-        snap.docs.map((d) => Mahasiswa.fromMap(d.id, d.data())).toList());
+  Stream<List<Mahasiswa>> getMahasiswa() {
+    return _collection.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return Mahasiswa.fromMap(doc.id, doc.data());
+      }).toList();
+    });
   }
 
-  Future<void> addMahasiswa(Mahasiswa m) => _col.add(m.toMap());
+  Future<void> addMahasiswa(Mahasiswa mahasiswa) {
+    return _collection.add(mahasiswa.toMap());
+  }
 
-  Future<void> addMahasiswa(Mahasiswa m) => _col.add(m.toMapCreate());
+  Future<void> updateMahasiswa(Mahasiswa mahasiswa) {
+    return _collection.doc(mahasiswa.id).update(mahasiswa.toMap());
+  }
 
-  Future<void> deleteMahasiswa(String id) => _col.doc(id).delete();
-
-  Future<String> uploadFoto(File file, String nim) async {
-    final ref = _storage.ref().child('foto_mahasiswa/$nim.jpg');
-    await ref.putFile(file);
-    return await ref.getDownloadURL();
+  Future<void> deleteMahasiswa(String id) {
+    return _collection.doc(id).delete();
   }
 }
