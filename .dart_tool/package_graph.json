@@ -663,6 +663,14 @@
       ]
     },
     {
+      "name": "boolean_selector",
+      "version": "2.1.2",
+      "dependencies": [
+        "source_span",
+        "string_scanner"
+      ]
+    },
+    {
       "name": "vm_service",
       "version": "15.2.0",
       "dependencies": []
