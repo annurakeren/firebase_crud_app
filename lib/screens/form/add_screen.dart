@@ -1,41 +1,143 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
-class AddScreen extends StatelessWidget {
+class AddScreen extends StatefulWidget {
   const AddScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final namaController = TextEditingController();
-    final nimController = TextEditingController();
-    final tanggalController = TextEditingController();
-    final hobiController = TextEditingController();
-    final hpController = TextEditingController();
-    final alamatController = TextEditingController();
+  State<AddScreen> createState() => _AddScreenState();
+}
 
+class _AddScreenState extends State<AddScreen> {
+  final namaController = TextEditingController();
+  final nimController = TextEditingController();
+  final tanggalController = TextEditingController();
+  final hobiController = TextEditingController();
+  final hpController = TextEditingController();
+  final alamatController = TextEditingController();
+
+  @override
+  void dispose() {
+    namaController.dispose();
+    nimController.dispose();
+    tanggalController.dispose();
+    hobiController.dispose();
+    hpController.dispose();
+    alamatController.dispose();
+    super.dispose();
+  }
+
+  void saveDummy() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Data mahasiswa dummy berhasil ditambahkan.'),
+      ),
+    );
+
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Mahasiswa')),
+      appBar: AppBar(
+        title: const Text('Tambah Data'),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         children: [
-          const CircleAvatar(
-            radius: 45,
-            child: Icon(Icons.camera_alt, size: 35),
+          Text(
+            'Tambah Mahasiswa',
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
-          const SizedBox(height: 16),
-          CustomTextField(controller: namaController, label: 'Nama', icon: Icons.person),
-          CustomTextField(controller: nimController, label: 'NIM', icon: Icons.badge),
-          CustomTextField(controller: tanggalController, label: 'Tanggal Lahir', icon: Icons.date_range),
-          CustomTextField(controller: hobiController, label: 'Hobi', icon: Icons.favorite),
-          CustomTextField(controller: hpController, label: 'Nomor HP', icon: Icons.phone),
-          CustomTextField(controller: alamatController, label: 'Alamat', icon: Icons.home),
+          const SizedBox(height: 6),
+          Text(
+            'Lengkapi form data mahasiswa di bawah ini.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           const SizedBox(height: 20),
-          CustomButton(
-            text: 'Simpan',
-            onPressed: () {
-              Navigator.pop(context);
-            },
+          Center(
+            child: Stack(
+              children: [
+                const CircleAvatar(
+                  radius: 54,
+                  backgroundColor: AppColors.softCream,
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 54,
+                    color: AppColors.amberwood,
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppColors.amberwood,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.camera_alt_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                children: [
+                  CustomTextField(
+                    controller: namaController,
+                    label: 'Nama Mahasiswa',
+                    icon: Icons.person_rounded,
+                  ),
+                  CustomTextField(
+                    controller: nimController,
+                    label: 'NIM',
+                    icon: Icons.badge_rounded,
+                    keyboardType: TextInputType.number,
+                  ),
+                  CustomTextField(
+                    controller: tanggalController,
+                    label: 'Tanggal Lahir',
+                    icon: Icons.calendar_month_rounded,
+                  ),
+                  CustomTextField(
+                    controller: hobiController,
+                    label: 'Hobi',
+                    icon: Icons.favorite_rounded,
+                  ),
+                  CustomTextField(
+                    controller: hpController,
+                    label: 'Nomor HP',
+                    icon: Icons.phone_rounded,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  CustomTextField(
+                    controller: alamatController,
+                    label: 'Alamat',
+                    icon: Icons.home_rounded,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 10),
+                  CustomButton(
+                    text: 'Simpan Data',
+                    icon: Icons.save_rounded,
+                    onPressed: saveDummy,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

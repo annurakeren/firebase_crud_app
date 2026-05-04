@@ -14,8 +14,7 @@ class SearchBarWidget extends StatelessWidget {
       onChanged: onChanged,
       decoration: const InputDecoration(
         hintText: 'Cari nama atau NIM...',
-        prefixIcon: Icon(Icons.search),
-        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.search_rounded),
       ),
     );
   }
