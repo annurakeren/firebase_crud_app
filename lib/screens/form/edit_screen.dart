@@ -26,12 +26,16 @@ class EditScreen extends StatefulWidget {
 }
 
 class _EditScreenState extends State<EditScreen> {
+  final formKey = GlobalKey<FormState>();
+
   late TextEditingController namaController;
   late TextEditingController nimController;
   late TextEditingController tanggalController;
   late TextEditingController hobiController;
   late TextEditingController hpController;
   late TextEditingController alamatController;
+
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -56,7 +60,62 @@ class _EditScreenState extends State<EditScreen> {
     super.dispose();
   }
 
-  void updateDummy() {
+  String? requiredValidator(String? value, String fieldName) {
+    if (value == null || value.trim().isEmpty) {
+      return '$fieldName wajib diisi';
+    }
+    return null;
+  }
+
+  String? nimValidator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'NIM wajib diisi';
+    }
+
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+      return 'NIM hanya boleh angka';
+    }
+
+    if (value.trim().length < 5) {
+      return 'NIM minimal 5 angka';
+    }
+
+    return null;
+  }
+
+  String? phoneValidator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Nomor HP wajib diisi';
+    }
+
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+      return 'Nomor HP hanya boleh angka';
+    }
+
+    if (value.trim().length < 10) {
+      return 'Nomor HP minimal 10 angka';
+    }
+
+    return null;
+  }
+
+  Future<void> updateDummy() async {
+    if (!formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = false;
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Data dummy berhasil diupdate.'),
@@ -83,8 +142,21 @@ class _EditScreenState extends State<EditScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+
+              setState(() {
+                isLoading = true;
+              });
+
+              await Future.delayed(const Duration(seconds: 1));
+
+              if (!mounted) return;
+
+              setState(() {
+                isLoading = false;
+              });
+
               Navigator.pop(context);
               Navigator.pop(context);
 
@@ -103,88 +175,120 @@ class _EditScreenState extends State<EditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth > 600 ? 80.0 : 20.0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Data'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: Stack(
         children: [
-          Text(
-            'Edit Mahasiswa',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Ubah data mahasiswa atau hapus data.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                children: [
-                  CustomTextField(
-                    controller: namaController,
-                    label: 'Nama Mahasiswa',
-                    icon: Icons.person_rounded,
-                  ),
-                  CustomTextField(
-                    controller: nimController,
-                    label: 'NIM',
-                    icon: Icons.badge_rounded,
-                    keyboardType: TextInputType.number,
-                  ),
-                  CustomTextField(
-                    controller: tanggalController,
-                    label: 'Tanggal Lahir',
-                    icon: Icons.calendar_month_rounded,
-                  ),
-                  CustomTextField(
-                    controller: hobiController,
-                    label: 'Hobi',
-                    icon: Icons.favorite_rounded,
-                  ),
-                  CustomTextField(
-                    controller: hpController,
-                    label: 'Nomor HP',
-                    icon: Icons.phone_rounded,
-                    keyboardType: TextInputType.phone,
-                  ),
-                  CustomTextField(
-                    controller: alamatController,
-                    label: 'Alamat',
-                    icon: Icons.home_rounded,
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 10),
-                  CustomButton(
-                    text: 'Update Data',
-                    icon: Icons.update_rounded,
-                    onPressed: updateDummy,
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: confirmDelete,
-                      icon: const Icon(Icons.delete_rounded),
-                      label: const Text('Delete Data'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.danger,
-                        side: const BorderSide(color: AppColors.danger),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+          ListView(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: 20,
+            ),
+            children: [
+              Text(
+                'Edit Mahasiswa',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Ubah data mahasiswa atau hapus data.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 20),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      children: [
+                        CustomTextField(
+                          controller: namaController,
+                          label: 'Nama Mahasiswa',
+                          icon: Icons.person_rounded,
+                          validator: (value) =>
+                              requiredValidator(value, 'Nama mahasiswa'),
                         ),
-                      ),
+                        CustomTextField(
+                          controller: nimController,
+                          label: 'NIM',
+                          icon: Icons.badge_rounded,
+                          keyboardType: TextInputType.number,
+                          validator: nimValidator,
+                        ),
+                        CustomTextField(
+                          controller: tanggalController,
+                          label: 'Tanggal Lahir',
+                          icon: Icons.calendar_month_rounded,
+                          validator: (value) =>
+                              requiredValidator(value, 'Tanggal lahir'),
+                        ),
+                        CustomTextField(
+                          controller: hobiController,
+                          label: 'Hobi',
+                          icon: Icons.favorite_rounded,
+                          validator: (value) =>
+                              requiredValidator(value, 'Hobi'),
+                        ),
+                        CustomTextField(
+                          controller: hpController,
+                          label: 'Nomor HP',
+                          icon: Icons.phone_rounded,
+                          keyboardType: TextInputType.phone,
+                          validator: phoneValidator,
+                        ),
+                        CustomTextField(
+                          controller: alamatController,
+                          label: 'Alamat',
+                          icon: Icons.home_rounded,
+                          maxLines: 2,
+                          validator: (value) =>
+                              requiredValidator(value, 'Alamat'),
+                        ),
+                        const SizedBox(height: 10),
+                        CustomButton(
+                          text: isLoading ? 'Mengupdate...' : 'Update Data',
+                          icon: Icons.update_rounded,
+                          onPressed: isLoading ? null : updateDummy,
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: isLoading ? null : confirmDelete,
+                            icon: const Icon(Icons.delete_rounded),
+                            label: const Text('Delete Data'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.danger,
+                              side: const BorderSide(color: AppColors.danger),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ),
+            ],
+          ),
+          if (isLoading)
+            Container(
+              color: Colors.black.withValues(alpha: 0.15),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.amberwood,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
