@@ -14,7 +14,7 @@ class FirestoreService {
 
   Future<void> addMahasiswa(Mahasiswa m) => _col.add(m.toMap());
 
-  Future<void> updateMahasiswa(Mahasiswa m) => _col.doc(m.id).update(m.toMap());
+  Future<void> addMahasiswa(Mahasiswa m) => _col.add(m.toMapCreate());
 
   Future<void> deleteMahasiswa(String id) => _col.doc(id).delete();
 
