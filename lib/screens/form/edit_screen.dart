@@ -1,24 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../models/mahasiswa_model.dart';
+import '../../services/firestore_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
 class EditScreen extends StatefulWidget {
-  final String nama;
-  final String nim;
-  final String tanggalLahir;
-  final String hobi;
-  final String nomorHp;
-  final String alamat;
+  final Mahasiswa mahasiswa;
 
   const EditScreen({
     super.key,
-    required this.nama,
-    required this.nim,
-    required this.tanggalLahir,
-    required this.hobi,
-    required this.nomorHp,
-    required this.alamat,
+    required this.mahasiswa,
   });
 
   @override
@@ -27,6 +21,8 @@ class EditScreen extends StatefulWidget {
 
 class _EditScreenState extends State<EditScreen> {
   final formKey = GlobalKey<FormState>();
+  final FirestoreService _service = FirestoreService();
+  final ImagePicker _picker = ImagePicker();
 
   late TextEditingController namaController;
   late TextEditingController nimController;
@@ -35,18 +31,32 @@ class _EditScreenState extends State<EditScreen> {
   late TextEditingController hpController;
   late TextEditingController alamatController;
 
+  File? _selectedImage;
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    final m = widget.mahasiswa;
+    namaController = TextEditingController(text: m.nama);
+    nimController = TextEditingController(text: m.nim);
+    tanggalController = TextEditingController(text: m.tanggalLahir);
+    hobiController = TextEditingController(text: m.hobi);
+    hpController = TextEditingController(text: m.nomorHp);
+    alamatController = TextEditingController(text: m.alamat);
+    
+    if (m.fotoUrl.isNotEmpty && !m.fotoUrl.startsWith('http')) {
+      _selectedImage = File(m.fotoUrl);
+    }
+  }
 
-    namaController = TextEditingController(text: widget.nama);
-    nimController = TextEditingController(text: widget.nim);
-    tanggalController = TextEditingController(text: widget.tanggalLahir);
-    hobiController = TextEditingController(text: widget.hobi);
-    hpController = TextEditingController(text: widget.nomorHp);
-    alamatController = TextEditingController(text: widget.alamat);
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
   }
 
   @override
@@ -61,68 +71,59 @@ class _EditScreenState extends State<EditScreen> {
   }
 
   String? requiredValidator(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName wajib diisi';
-    }
+    if (value == null || value.trim().isEmpty) return '$fieldName wajib diisi';
     return null;
   }
 
   String? nimValidator(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'NIM wajib diisi';
-    }
-
-    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
-      return 'NIM hanya boleh angka';
-    }
-
-    if (value.trim().length < 5) {
-      return 'NIM minimal 5 angka';
-    }
-
+    if (value == null || value.trim().isEmpty) return 'NIM wajib diisi';
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) return 'NIM hanya boleh angka';
+    if (value.trim().length < 5) return 'NIM minimal 5 angka';
     return null;
   }
 
   String? phoneValidator(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Nomor HP wajib diisi';
-    }
-
-    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
-      return 'Nomor HP hanya boleh angka';
-    }
-
-    if (value.trim().length < 10) {
-      return 'Nomor HP minimal 10 angka';
-    }
-
+    if (value == null || value.trim().isEmpty) return 'Nomor HP wajib diisi';
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) return 'Nomor HP hanya boleh angka';
+    if (value.trim().length < 10) return 'Nomor HP minimal 10 angka';
     return null;
   }
 
-  Future<void> updateDummy() async {
-    if (!formKey.currentState!.validate()) {
-      return;
+  Future<void> updateMahasiswa() async {
+    if (!formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      final updated = Mahasiswa(
+        id: widget.mahasiswa.id,
+        nama: namaController.text.trim(),
+        nim: nimController.text.trim(),
+        tanggalLahir: tanggalController.text.trim(),
+        hobi: hobiController.text.trim(),
+        nomorHp: hpController.text.trim(),
+        alamat: alamatController.text.trim(),
+        fotoUrl: _selectedImage?.path ?? widget.mahasiswa.fotoUrl,
+        createdAt: widget.mahasiswa.createdAt,
+      );
+
+      await _service.updateMahasiswa(updated);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data berhasil diupdate.')),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal update data: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-
-    setState(() {
-      isLoading = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Data dummy berhasil diupdate.'),
-      ),
-    );
-
-    Navigator.pop(context);
   }
 
   void confirmDelete() {
@@ -143,28 +144,29 @@ class _EditScreenState extends State<EditScreen> {
               backgroundColor: AppColors.danger,
             ),
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(context); // tutup dialog
 
-              setState(() {
-                isLoading = true;
-              });
+              setState(() => isLoading = true);
 
-              await Future.delayed(const Duration(seconds: 1));
+              try {
+                await _service.deleteMahasiswa(widget.mahasiswa.id);
 
-              if (!mounted) return;
+                if (!mounted) return;
 
-              setState(() {
-                isLoading = false;
-              });
+                // pop edit screen + detail screen, kembali ke dashboard
+                Navigator.pop(context);
+                Navigator.pop(context);
 
-              Navigator.pop(context);
-              Navigator.pop(context);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Data dummy berhasil dihapus.'),
-                ),
-              );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Data berhasil dihapus.')),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                setState(() => isLoading = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal menghapus data: $e')),
+                );
+              }
             },
             child: const Text('Hapus'),
           ),
@@ -200,6 +202,47 @@ class _EditScreenState extends State<EditScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 20),
+              Center(
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 54,
+                      backgroundColor: AppColors.softCream,
+                      backgroundImage: _selectedImage != null
+                          ? FileImage(_selectedImage!)
+                          : (widget.mahasiswa.fotoUrl.startsWith('http')
+                              ? NetworkImage(widget.mahasiswa.fotoUrl)
+                              : null as ImageProvider?),
+                      child: _selectedImage == null &&
+                              !widget.mahasiswa.fotoUrl.startsWith('http')
+                          ? const Icon(
+                              Icons.person_rounded,
+                              size: 54,
+                              color: AppColors.amberwood,
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.amberwood,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: _pickImage,
+                          icon: const Icon(
+                            Icons.camera_alt_rounded,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
@@ -211,8 +254,7 @@ class _EditScreenState extends State<EditScreen> {
                           controller: namaController,
                           label: 'Nama Mahasiswa',
                           icon: Icons.person_rounded,
-                          validator: (value) =>
-                              requiredValidator(value, 'Nama mahasiswa'),
+                          validator: (v) => requiredValidator(v, 'Nama mahasiswa'),
                         ),
                         CustomTextField(
                           controller: nimController,
@@ -225,15 +267,13 @@ class _EditScreenState extends State<EditScreen> {
                           controller: tanggalController,
                           label: 'Tanggal Lahir',
                           icon: Icons.calendar_month_rounded,
-                          validator: (value) =>
-                              requiredValidator(value, 'Tanggal lahir'),
+                          validator: (v) => requiredValidator(v, 'Tanggal lahir'),
                         ),
                         CustomTextField(
                           controller: hobiController,
                           label: 'Hobi',
                           icon: Icons.favorite_rounded,
-                          validator: (value) =>
-                              requiredValidator(value, 'Hobi'),
+                          validator: (v) => requiredValidator(v, 'Hobi'),
                         ),
                         CustomTextField(
                           controller: hpController,
@@ -247,14 +287,13 @@ class _EditScreenState extends State<EditScreen> {
                           label: 'Alamat',
                           icon: Icons.home_rounded,
                           maxLines: 2,
-                          validator: (value) =>
-                              requiredValidator(value, 'Alamat'),
+                          validator: (v) => requiredValidator(v, 'Alamat'),
                         ),
                         const SizedBox(height: 10),
                         CustomButton(
                           text: isLoading ? 'Mengupdate...' : 'Update Data',
                           icon: Icons.update_rounded,
-                          onPressed: isLoading ? null : updateDummy,
+                          onPressed: isLoading ? null : updateMahasiswa,
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
@@ -284,9 +323,7 @@ class _EditScreenState extends State<EditScreen> {
             Container(
               color: Colors.black.withValues(alpha: 0.15),
               child: const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.amberwood,
-                ),
+                child: CircularProgressIndicator(color: AppColors.amberwood),
               ),
             ),
         ],

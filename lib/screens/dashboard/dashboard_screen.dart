@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+
+import '../../models/mahasiswa_model.dart';
+import '../../services/firestore_service.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/filter_chip_widget.dart';
 import '../../widgets/mahasiswa_card.dart';
-import '../../widgets/search_bar_widget.dart';
 import '../about/about_screen.dart';
 import '../form/add_screen.dart';
 
@@ -21,225 +22,260 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String selectedHobi = 'Semua';
+  final FirestoreService _service = FirestoreService();
+  final searchController = TextEditingController();
+
   String searchQuery = '';
-  bool sortByName = false;
+  String filterHobi = '';
 
-  final List<Map<String, String>> dummyData = [
-    {
-      'nama': 'Annura Rizkya',
-      'nim': '240001',
-      'tanggalLahir': '14 April 2005',
-      'hobi': 'Membaca',
-      'nomorHp': '081234567890',
-      'alamat': 'Depok',
-    },
-    {
-      'nama': 'Budi Santoso',
-      'nim': '240002',
-      'tanggalLahir': '21 Mei 2005',
-      'hobi': 'Musik',
-      'nomorHp': '081298765432',
-      'alamat': 'Jakarta',
-    },
-    {
-      'nama': 'Citra Lestari',
-      'nim': '240003',
-      'tanggalLahir': '09 Agustus 2005',
-      'hobi': 'Olahraga',
-      'nomorHp': '081377788899',
-      'alamat': 'Bogor',
-    },
-  ];
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
 
-  List<Map<String, String>> get filteredData {
-    List<Map<String, String>> result = dummyData.where((data) {
-      final nama = data['nama']!.toLowerCase();
-      final nim = data['nim']!.toLowerCase();
-      final hobi = data['hobi']!;
+  List<Mahasiswa> _applyFilter(List<Mahasiswa> list) {
+    return list.where((m) {
+      final matchSearch = searchQuery.isEmpty ||
+          m.nama.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          m.nim.toLowerCase().contains(searchQuery.toLowerCase());
 
-      final matchSearch = nama.contains(searchQuery.toLowerCase()) ||
-          nim.contains(searchQuery.toLowerCase());
-
-      final matchHobi = selectedHobi == 'Semua' || hobi == selectedHobi;
+      final matchHobi = filterHobi.isEmpty ||
+          m.hobi.toLowerCase().contains(filterHobi.toLowerCase());
 
       return matchSearch && matchHobi;
     }).toList();
+  }
 
-    if (sortByName) {
-      result.sort((a, b) => a['nama']!.compareTo(b['nama']!));
-    }
+  void showFilterDialog(List<Mahasiswa> allData) {
+    final hobiList = allData.map((m) => m.hobi).toSet().toList();
+    hobiList.sort();
 
-    return result;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Filter Hobi'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('Semua'),
+                leading: Radio<String>(
+                  value: '',
+                  groupValue: filterHobi,
+                  activeColor: AppColors.amberwood,
+                  onChanged: (v) {
+                    setState(() => filterHobi = v!);
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+              ...hobiList.map(
+                    (hobi) => ListTile(
+                  title: Text(hobi),
+                  leading: Radio<String>(
+                    value: hobi,
+                    groupValue: filterHobi,
+                    activeColor: AppColors.amberwood,
+                    onChanged: (v) {
+                      setState(() => filterHobi = v!);
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = filteredData;
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('SIM Mahasiswa'),
         actions: [
           IconButton(
-            tooltip: 'Sort Nama',
-            icon: Icon(
-              sortByName
-                  ? Icons.sort_by_alpha_rounded
-                  : Icons.sort_rounded,
-            ),
-            onPressed: () {
-              setState(() {
-                sortByName = !sortByName;
-              });
-            },
-          ),
-          IconButton(
-            tooltip: 'About',
             icon: const Icon(Icons.info_outline_rounded),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AboutScreen(
-                    isDarkMode: widget.isDarkMode,
-                    onThemeChanged: widget.onThemeChanged,
-                  ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AboutScreen(
+                  isDarkMode: widget.isDarkMode,
+                  onThemeChanged: widget.onThemeChanged,
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'Data Mahasiswa',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Cari, filter, dan kelola data mahasiswa.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 20),
-          SearchBarWidget(
-            onChanged: (value) {
-              setState(() {
-                searchQuery = value;
-              });
-            },
-          ),
-          const SizedBox(height: 14),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                FilterChipWidget(
-                  label: 'Semua',
-                  selected: selectedHobi == 'Semua',
-                  onSelected: () {
-                    setState(() {
-                      selectedHobi = 'Semua';
-                    });
-                  },
-                ),
-                FilterChipWidget(
-                  label: 'Membaca',
-                  selected: selectedHobi == 'Membaca',
-                  onSelected: () {
-                    setState(() {
-                      selectedHobi = 'Membaca';
-                    });
-                  },
-                ),
-                FilterChipWidget(
-                  label: 'Musik',
-                  selected: selectedHobi == 'Musik',
-                  onSelected: () {
-                    setState(() {
-                      selectedHobi = 'Musik';
-                    });
-                  },
-                ),
-                FilterChipWidget(
-                  label: 'Olahraga',
-                  selected: selectedHobi == 'Olahraga',
-                  onSelected: () {
-                    setState(() {
-                      selectedHobi = 'Olahraga';
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.amberwood,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.groups_rounded,
-                  color: Colors.white,
-                  size: 36,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    '${data.length} data mahasiswa ditampilkan',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+      body: StreamBuilder<List<Mahasiswa>>(
+        stream: _service.getMahasiswa(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.amberwood,
+              ),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Terjadi kesalahan: ${snapshot.error}'),
+            );
+          }
+
+          final allData = snapshot.data ?? [];
+          final filtered = _applyFilter(allData);
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Cari nama atau NIM...',
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          suffixIcon: searchQuery.isNotEmpty
+                              ? IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            onPressed: () {
+                              searchController.clear();
+                              setState(() => searchQuery = '');
+                            },
+                          )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                        ),
+                        onChanged: (v) => setState(() => searchQuery = v),
+                      ),
                     ),
+                    const SizedBox(width: 10),
+                    IconButton.filled(
+                      onPressed: () => showFilterDialog(allData),
+                      icon: Stack(
+                        children: [
+                          const Icon(Icons.filter_list_rounded),
+                          if (filterHobi.isNotEmpty)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.danger,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.amberwood,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              if (filterHobi.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Text('Filter: '),
+                      Chip(
+                        label: Text(filterHobi),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () => setState(() => filterHobi = ''),
+                        backgroundColor: AppColors.softCream,
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          if (data.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 48),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.search_off_rounded,
-                    size: 70,
-                    color: Theme.of(context).colorScheme.primary,
+
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      '${filtered.length} mahasiswa',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: filtered.isEmpty
+                    ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.search_off_rounded,
+                        size: 64,
+                        color: AppColors.mutedText.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        allData.isEmpty
+                            ? 'Belum ada data mahasiswa.'
+                            : 'Data tidak ditemukan.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  const Text('Data tidak ditemukan'),
-                ],
+                )
+                    : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) =>
+                  const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final m = filtered[index];
+
+                    return MahasiswaCard(
+                      mahasiswa: m,
+                    );
+                  },
+                ),
               ),
-            )
-          else
-            ...data.map(
-              (item) => MahasiswaCard(
-                nama: item['nama']!,
-                nim: item['nim']!,
-                tanggalLahir: item['tanggalLahir']!,
-                hobi: item['hobi']!,
-                nomorHp: item['nomorHp']!,
-                alamat: item['alamat']!,
-              ),
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Tambah'),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddScreen()),
+            ],
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AddScreen(),
+          ),
+        ),
+        backgroundColor: AppColors.amberwood,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Tambah'),
       ),
     );
   }

@@ -144,7 +144,7 @@ class AboutScreen extends StatelessWidget {
               ),
               subtitle: const Text('Ubah tema aplikasi'),
               value: isDarkMode,
-              activeColor: AppColors.amberwood,
+              activeThumbColor: AppColors.amberwood,
               onChanged: onThemeChanged,
             ),
           ),

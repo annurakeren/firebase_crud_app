@@ -1,23 +1,15 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../models/mahasiswa_model.dart';
 import '../../theme/app_colors.dart';
 import '../form/edit_screen.dart';
 
 class DetailScreen extends StatelessWidget {
-  final String nama;
-  final String nim;
-  final String tanggalLahir;
-  final String hobi;
-  final String nomorHp;
-  final String alamat;
+  final Mahasiswa mahasiswa;
 
   const DetailScreen({
     super.key,
-    required this.nama,
-    required this.nim,
-    required this.tanggalLahir,
-    required this.hobi,
-    required this.nomorHp,
-    required this.alamat,
+    required this.mahasiswa,
   });
 
   Widget infoItem({
@@ -53,7 +45,7 @@ class DetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  value,
+                  value.isNotEmpty ? value : '-',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -69,6 +61,8 @@ class DetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final m = mahasiswa;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail Mahasiswa'),
@@ -81,24 +75,31 @@ class DetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 54,
                     backgroundColor: AppColors.softCream,
-                    child: Icon(
+                    backgroundImage: m.fotoUrl.isNotEmpty
+                        ? (m.fotoUrl.startsWith('http')
+                        ? NetworkImage(m.fotoUrl)
+                        : FileImage(File(m.fotoUrl)) as ImageProvider)
+                        : null,
+                    child: m.fotoUrl.isEmpty
+                        ? const Icon(
                       Icons.person_rounded,
                       size: 58,
                       color: AppColors.amberwood,
-                    ),
+                    )
+                        : null,
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    nama,
+                    m.nama,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'NIM $nim',
+                    'NIM ${m.nim}',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -114,27 +115,27 @@ class DetailScreen extends StatelessWidget {
                   infoItem(
                     icon: Icons.badge_rounded,
                     title: 'NIM',
-                    value: nim,
+                    value: m.nim,
                   ),
                   infoItem(
                     icon: Icons.cake_rounded,
                     title: 'Tanggal Lahir',
-                    value: tanggalLahir,
+                    value: m.tanggalLahir,
                   ),
                   infoItem(
                     icon: Icons.favorite_rounded,
                     title: 'Hobi',
-                    value: hobi,
+                    value: m.hobi,
                   ),
                   infoItem(
                     icon: Icons.phone_rounded,
                     title: 'Nomor HP',
-                    value: nomorHp,
+                    value: m.nomorHp,
                   ),
                   infoItem(
                     icon: Icons.home_rounded,
                     title: 'Alamat',
-                    value: alamat,
+                    value: m.alamat,
                   ),
                 ],
               ),
@@ -146,14 +147,7 @@ class DetailScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => EditScreen(
-                    nama: nama,
-                    nim: nim,
-                    tanggalLahir: tanggalLahir,
-                    hobi: hobi,
-                    nomorHp: nomorHp,
-                    alamat: alamat,
-                  ),
+                  builder: (_) => EditScreen(mahasiswa: m),
                 ),
               );
             },

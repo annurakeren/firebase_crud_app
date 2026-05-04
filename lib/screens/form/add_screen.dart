@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../models/mahasiswa_model.dart';
+import '../../services/firestore_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -12,6 +16,8 @@ class AddScreen extends StatefulWidget {
 
 class _AddScreenState extends State<AddScreen> {
   final formKey = GlobalKey<FormState>();
+  final FirestoreService _service = FirestoreService();
+  final ImagePicker _picker = ImagePicker();
 
   final namaController = TextEditingController();
   final nimController = TextEditingController();
@@ -20,6 +26,7 @@ class _AddScreenState extends State<AddScreen> {
   final hpController = TextEditingController();
   final alamatController = TextEditingController();
 
+  File? _selectedImage;
   bool isLoading = false;
 
   @override
@@ -33,6 +40,15 @@ class _AddScreenState extends State<AddScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
   String? requiredValidator(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
       return '$fieldName wajib diisi';
@@ -41,61 +57,53 @@ class _AddScreenState extends State<AddScreen> {
   }
 
   String? nimValidator(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'NIM wajib diisi';
-    }
-
-    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
-      return 'NIM hanya boleh angka';
-    }
-
-    if (value.trim().length < 5) {
-      return 'NIM minimal 5 angka';
-    }
-
+    if (value == null || value.trim().isEmpty) return 'NIM wajib diisi';
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) return 'NIM hanya boleh angka';
+    if (value.trim().length < 5) return 'NIM minimal 5 angka';
     return null;
   }
 
   String? phoneValidator(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Nomor HP wajib diisi';
-    }
-
-    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
-      return 'Nomor HP hanya boleh angka';
-    }
-
-    if (value.trim().length < 10) {
-      return 'Nomor HP minimal 10 angka';
-    }
-
+    if (value == null || value.trim().isEmpty) return 'Nomor HP wajib diisi';
+    if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) return 'Nomor HP hanya boleh angka';
+    if (value.trim().length < 10) return 'Nomor HP minimal 10 angka';
     return null;
   }
 
-  Future<void> saveDummy() async {
-    if (!formKey.currentState!.validate()) {
-      return;
+  Future<void> saveMahasiswa() async {
+    if (!formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      final mahasiswa = Mahasiswa(
+        id: '',
+        nama: namaController.text.trim(),
+        nim: nimController.text.trim(),
+        tanggalLahir: tanggalController.text.trim(),
+        hobi: hobiController.text.trim(),
+        nomorHp: hpController.text.trim(),
+        alamat: alamatController.text.trim(),
+        fotoUrl: _selectedImage?.path ?? '',
+      );
+
+      await _service.addMahasiswa(mahasiswa);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data mahasiswa berhasil ditambahkan.')),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan data: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-
-    setState(() {
-      isLoading = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Data mahasiswa dummy berhasil ditambahkan.'),
-      ),
-    );
-
-    Navigator.pop(context);
   }
 
   @override
@@ -128,14 +136,19 @@ class _AddScreenState extends State<AddScreen> {
               Center(
                 child: Stack(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 54,
                       backgroundColor: AppColors.softCream,
-                      child: Icon(
+                      backgroundImage: _selectedImage != null
+                          ? FileImage(_selectedImage!)
+                          : null,
+                      child: _selectedImage == null
+                          ? const Icon(
                         Icons.person_rounded,
                         size: 54,
                         color: AppColors.amberwood,
-                      ),
+                      )
+                          : null,
                     ),
                     Positioned(
                       right: 0,
@@ -145,7 +158,7 @@ class _AddScreenState extends State<AddScreen> {
                         backgroundColor: AppColors.amberwood,
                         child: IconButton(
                           padding: EdgeInsets.zero,
-                          onPressed: () {},
+                          onPressed: _pickImage,
                           icon: const Icon(
                             Icons.camera_alt_rounded,
                             size: 18,
@@ -169,8 +182,7 @@ class _AddScreenState extends State<AddScreen> {
                           controller: namaController,
                           label: 'Nama Mahasiswa',
                           icon: Icons.person_rounded,
-                          validator: (value) =>
-                              requiredValidator(value, 'Nama mahasiswa'),
+                          validator: (v) => requiredValidator(v, 'Nama mahasiswa'),
                         ),
                         CustomTextField(
                           controller: nimController,
@@ -183,15 +195,13 @@ class _AddScreenState extends State<AddScreen> {
                           controller: tanggalController,
                           label: 'Tanggal Lahir',
                           icon: Icons.calendar_month_rounded,
-                          validator: (value) =>
-                              requiredValidator(value, 'Tanggal lahir'),
+                          validator: (v) => requiredValidator(v, 'Tanggal lahir'),
                         ),
                         CustomTextField(
                           controller: hobiController,
                           label: 'Hobi',
                           icon: Icons.favorite_rounded,
-                          validator: (value) =>
-                              requiredValidator(value, 'Hobi'),
+                          validator: (v) => requiredValidator(v, 'Hobi'),
                         ),
                         CustomTextField(
                           controller: hpController,
@@ -205,14 +215,13 @@ class _AddScreenState extends State<AddScreen> {
                           label: 'Alamat',
                           icon: Icons.home_rounded,
                           maxLines: 2,
-                          validator: (value) =>
-                              requiredValidator(value, 'Alamat'),
+                          validator: (v) => requiredValidator(v, 'Alamat'),
                         ),
                         const SizedBox(height: 10),
                         CustomButton(
                           text: isLoading ? 'Menyimpan...' : 'Simpan Data',
                           icon: Icons.save_rounded,
-                          onPressed: isLoading ? null : saveDummy,
+                          onPressed: isLoading ? null : saveMahasiswa,
                         ),
                       ],
                     ),
@@ -225,9 +234,7 @@ class _AddScreenState extends State<AddScreen> {
             Container(
               color: Colors.black.withValues(alpha: 0.15),
               child: const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.amberwood,
-                ),
+                child: CircularProgressIndicator(color: AppColors.amberwood),
               ),
             ),
         ],

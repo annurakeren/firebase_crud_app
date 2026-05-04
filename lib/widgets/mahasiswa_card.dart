@@ -1,23 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+
+import '../models/mahasiswa_model.dart';
 import '../screens/detail/detail_screen.dart';
 import '../theme/app_colors.dart';
 
 class MahasiswaCard extends StatelessWidget {
-  final String nama;
-  final String nim;
-  final String tanggalLahir;
-  final String hobi;
-  final String nomorHp;
-  final String alamat;
+  final Mahasiswa mahasiswa;
 
   const MahasiswaCard({
     super.key,
-    required this.nama,
-    required this.nim,
-    required this.tanggalLahir,
-    required this.hobi,
-    required this.nomorHp,
-    required this.alamat,
+    required this.mahasiswa,
   });
 
   @override
@@ -30,12 +23,7 @@ class MahasiswaCard extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (_) => DetailScreen(
-                nama: nama,
-                nim: nim,
-                tanggalLahir: tanggalLahir,
-                hobi: hobi,
-                nomorHp: nomorHp,
-                alamat: alamat,
+                mahasiswa: mahasiswa,
               ),
             ),
           );
@@ -44,14 +32,21 @@ class MahasiswaCard extends StatelessWidget {
           padding: const EdgeInsets.all(15),
           child: Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 30,
                 backgroundColor: AppColors.softCream,
-                child: Icon(
+                backgroundImage: mahasiswa.fotoUrl.isNotEmpty
+                    ? (mahasiswa.fotoUrl.startsWith('http')
+                        ? NetworkImage(mahasiswa.fotoUrl)
+                        : FileImage(File(mahasiswa.fotoUrl)) as ImageProvider)
+                    : null,
+                child: mahasiswa.fotoUrl.isEmpty
+                    ? const Icon(
                   Icons.person_rounded,
                   color: AppColors.amberwood,
                   size: 32,
-                ),
+                )
+                    : null,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -59,12 +54,12 @@ class MahasiswaCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      nama,
+                      mahasiswa.nama,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'NIM: $nim',
+                      'NIM: ${mahasiswa.nim}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 4),
@@ -76,9 +71,12 @@ class MahasiswaCard extends StatelessWidget {
                           color: AppColors.amberwood,
                         ),
                         const SizedBox(width: 5),
-                        Text(
-                          hobi,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                        Expanded(
+                          child: Text(
+                            mahasiswa.hobi,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
