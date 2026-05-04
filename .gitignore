@@ -16,6 +16,10 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
+.dart_tool/
+build/
+*.iml
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
